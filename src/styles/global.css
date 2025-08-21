@@ -1,0 +1,153 @@
+@import "tailwindcss";
+
+/* 새로운 디자인 시스템 - 폰트 임포트 */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css');
+
+/* 커스텀 CSS 속성 (디자인 토큰) */
+:root {
+  /* 색상 토큰 */
+  --brand-primary: #2563EB;
+  --brand-primary-600: #1D4ED8;
+  --brand-primary-700: #1E40AF;
+  --brand-accent: #00BFA6;
+  --ink: #0F172A;
+  --subhead: #334155;
+  --muted: #94A3B8;
+  --surface: #F1F5F9;
+  --error: #DC2626;
+  
+  /* 그라데이션 */
+  --gradient-hero: linear-gradient(135deg, #2563EB 0%, #00BFA6 100%);
+  
+  /* 그림자 */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.05);
+  --shadow-md: 0 8px 24px rgba(0,0,0,.12);
+  
+  /* 애니메이션 */
+  --ease: cubic-bezier(.22,.61,.36,1);
+}
+
+/* 폰트 스택 */
+html, body {
+  font-family: 'Pretendard', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* 숫자 폰트 (시간표용) */
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 한글 최적화 */
+@media screen and (max-width: 768px) {
+  html {
+    font-size: 14px;
+  }
+}
+
+/* 스크롤바 스타일링 */
+.timetable-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.timetable-container::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+
+.timetable-container::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+
+.timetable-container::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* 기본 애니메이션 */
+.feature-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* 접근성 개선 */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* 포커스 스타일 */
+*:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+button:focus,
+a:focus,
+input:focus {
+  outline: 2px solid var(--brand-primary);
+  outline-offset: 2px;
+}
+
+/* 추가 마이크로 인터랙션 */
+button, 
+.btn,
+a[href] {
+  transition: all 0.25s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
+button:hover,
+.btn:hover {
+  transform: scale(1.02);
+}
+
+button:active,
+.btn:active {
+  transform: scale(0.98);
+}
+
+/* 링크 hover 효과 */
+a:hover {
+  transition: color 0.2s var(--ease);
+}
+
+/* 카드 hover 글로우 효과 */
+.card:hover,
+.feature-card:hover {
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1), 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* 입력 필드 포커스 글로우 */
+input:focus {
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* 텍스트 그림자 유틸리티 */
+.text-shadow {
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.text-shadow-lg {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8), 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+/* 애니메이션 최적화 */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

@@ -1,0 +1,122 @@
+---
+interface Props {
+  routeName: string;
+  stops: string[];
+  departures: (string | null)[][];
+}
+
+const { routeName, stops, departures } = Astro.props;
+
+// 요약 정보 계산
+function getSummaryData() {
+  const validTimes = departures
+    .flat()
+    .filter(time => time && time !== '—' && /^\d{2}:\d{2}$/.test(time))
+    .sort();
+
+  if (validTimes.length === 0) {
+    return { firstBus: '—', lastBus: '—', avgInterval: '—' };
+  }
+
+  const firstBus = validTimes[0];
+  const lastBus = validTimes[validTimes.length - 1];
+  
+  // 평균 배차간격 계산 (분 단위)
+  let totalIntervals = 0;
+  let intervalCount = 0;
+  
+  for (let i = 1; i < validTimes.length; i++) {
+    const [h1, m1] = validTimes[i-1].split(':').map(Number);
+    const [h2, m2] = validTimes[i].split(':').map(Number);
+    const diff = (h2 * 60 + m2) - (h1 * 60 + m1);
+    if (diff > 0 && diff < 180) { // 3시간 이하 간격만 계산
+      totalIntervals += diff;
+      intervalCount++;
+    }
+  }
+  
+  const avgInterval = intervalCount > 0 
+    ? Math.round(totalIntervals / intervalCount) + '분'
+    : '—';
+
+  return { firstBus, lastBus, avgInterval };
+}
+
+const summary = getSummaryData();
+---
+
+<!-- 요약 배지 -->
+<div class="mb-6 flex flex-wrap gap-3 justify-center">
+  <div class="px-4 py-2 bg-gradient-to-r from-blue-50 to-blue-100 rounded-full border border-blue-200">
+    <span class="text-blue-600 text-sm font-medium">
+      🚌 첫차 <span class="font-tabular font-semibold">{summary.firstBus}</span>
+    </span>
+  </div>
+  <div class="px-4 py-2 bg-gradient-to-r from-green-50 to-green-100 rounded-full border border-green-200">
+    <span class="text-green-600 text-sm font-medium">
+      🌙 막차 <span class="font-tabular font-semibold">{summary.lastBus}</span>
+    </span>
+  </div>
+  <div class="px-4 py-2 bg-gradient-to-r from-purple-50 to-purple-100 rounded-full border border-purple-200">
+    <span class="text-purple-600 text-sm font-medium">
+      ⚡ 평균배차 <span class="font-tabular font-semibold">{summary.avgInterval}</span>
+    </span>
+  </div>
+</div>
+
+<div class="timetable-container overflow-x-auto bg-white rounded-lg shadow-sm border">
+  <table class="w-full min-w-full font-tabular">
+    <caption class="sr-only">
+      {routeName} 정류장별 출발시각(현지 KST)
+    </caption>
+    <thead class="bg-blue-50 sticky top-0">
+      <tr>
+        <th class="px-4 py-3 text-left text-sm font-semibold text-gray-900 border-r">출발시각</th>
+        {stops.map((stop) => (
+          <th class="px-3 py-3 text-center text-sm font-semibold text-gray-900 min-w-24 border-r last:border-r-0">
+            {stop}
+          </th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {departures.map((departure, index) => (
+        <tr class={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+          <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap border-r font-tabular">
+            {departure[0] || '—'}
+          </td>
+          {departure.slice(1).map((time, stopIndex) => (
+            <td class="px-3 py-3 text-center text-sm text-gray-700 whitespace-nowrap border-r last:border-r-0 font-tabular">
+              {time || '—'}
+            </td>
+          ))}
+        </tr>
+      ))}
+    </tbody>
+  </table>
+</div>
+
+<style>
+  .timetable-container {
+    max-width: 100%;
+  }
+  
+  table {
+    border-collapse: collapse;
+  }
+  
+  th, td {
+    border-bottom: 1px solid #e5e7eb;
+  }
+  
+  @media (max-width: 768px) {
+    th, td {
+      padding: 8px 12px;
+      font-size: 0.875rem;
+    }
+    
+    th {
+      min-width: 80px;
+    }
+  }
+</style>

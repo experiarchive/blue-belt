@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://airport-bus-info.vercel.app/sitemap-index.xml

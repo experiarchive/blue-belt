@@ -1,16 +1,68 @@
 ---
-
+import HeroSlider from '../components/HeroSlider.tsx';
+import Navigation from '../components/Navigation.tsx';
+import FeaturedAreas from '../components/FeaturedAreas.astro';
+import AdsSlot from '../components/AdsSlot.astro';
+import '../styles/global.css';
 ---
 
-<html lang="en">
+<html lang="ko">
 	<head>
 		<meta charset="utf-8" />
 		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<meta name="viewport" content="width=device-width" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
+		<meta name="description" content="인천공항 공항버스 시간표와 요금 정보를 한눈에 확인하세요. 명동, 홍대, 강남 등 주요 지역별 노선 정보를 제공합니다." />
+		<title>공항버스 시간표 · 요금 | 인천공항 ↔ 서울 주요지역</title>
 	</head>
 	<body>
-		<h1>Astro</h1>
+		<!-- Header Section -->
+		<header class="bg-white shadow-sm">
+			<div class="max-w-7xl mx-auto px-4 py-4">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center">
+						<img 
+							src="/logo/seoul-airport-bus-logo.webp" 
+							alt="Seoul Airport Bus" 
+							class="h-10 md:h-14 w-auto"
+						/>
+					</div>
+					<Navigation client:load />
+				</div>
+			</div>
+		</header>
+
+		<!-- Hero Section with Slider -->
+		<section class="hero-section relative overflow-hidden">
+			<HeroSlider client:load />
+		</section>
+
+		<main class="max-w-7xl mx-auto px-4 pb-12">
+			<!-- Ad Slot - Hero 직후 최소 여백 -->
+			<div class="py-4">
+				<AdsSlot />
+			</div>
+
+			<!-- Featured Areas -->
+			<FeaturedAreas />
+
+			<!-- Footer -->
+			<footer class="mt-16 text-center text-gray-500 text-sm">
+				<p>&copy; 2025 SEOUL AIRPORT BUS</p>
+			</footer>
+		</main>
 	</body>
 </html>
+
+<style>
+	/* Hero 섹션 - 콘텐츠 높이에 맞게 조정 */
+	.hero-section {
+		min-height: auto;
+	}
+	
+	@media (max-width: 768px) {
+		.hero-section {
+			min-height: auto;
+		}
+	}
+</style>

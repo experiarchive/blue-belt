@@ -1,0 +1,342 @@
+---
+import type { GetStaticPaths } from 'astro';
+import TimetableTable from '../../components/TimetableTable.astro';
+import AdsSlot from '../../components/AdsSlot.astro';
+import Navigation from '../../components/Navigation.tsx';
+import { getRoutesFromEnv, getRouteBySlug } from '../../lib/routes';
+import { fetchAndParseTimetable } from '../../lib/csv';
+import '../../styles/global.css';
+
+export const getStaticPaths: GetStaticPaths = async () => {
+  const routes = getRoutesFromEnv();
+  
+  const paths = routes.map((route) => {
+    return {
+      params: { slug: route.slug },
+      props: {
+        route,
+      },
+    };
+  });
+  
+  return paths;
+};
+
+const { route } = Astro.props;
+
+// Fetch timetable data at runtime
+let timetable = { stops: [], departures: [] };
+let error = null;
+
+try {
+  if (route.csvUrl !== 'https://example.com/dummy.csv') {
+    timetable = await fetchAndParseTimetable(route.csvUrl);
+  } else {
+    // For development with dummy URLs, create mock data
+    error = '개발 모드: 실제 CSV URL을 설정하면 시간표가 표시됩니다.';
+    timetable = {
+      stops: ['인천공항', '김포공항', '서울역', route.name.includes('명동') ? '명동' : route.name.includes('홍대') ? '홍대' : '강남'],
+      departures: [
+        ['06:00', '06:30', '07:00', '07:30'],
+        ['07:00', '07:30', '08:00', '08:30'],
+        ['08:00', '08:30', '09:00', '09:30'],
+      ]
+    };
+  }
+} catch (fetchError) {
+  console.error(`Failed to fetch timetable for route ${route.name}:`, fetchError);
+  error = `시간표를 불러올 수 없습니다: ${fetchError.message}`;
+}
+---
+
+<html lang="ko">
+	<head>
+		<meta charset="utf-8" />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<meta name="generator" content={Astro.generator} />
+		<meta name="description" content={`인천공항↔${route.name.split('↔')[1]?.split('(')[0] || '서울'} 공항버스의 최신 운행정보, 정류장 위치, 시간표를 확인하세요. 소요시간, 요금정보, 운행간격까지 한눈에!`} />
+		<meta name="keywords" content={`공항버스, 인천공항, ${route.name.split('↔')[1]?.split('(')[0] || '서울'}, 시간표, 정류장, 버스요금, 공항교통`} />
+		<meta property="og:title" content={`${route.name} | 최신 시간표 & 정류장 안내`} />
+		<meta property="og:description" content={`인천공항↔${route.name.split('↔')[1]?.split('(')[0] || '서울'} 공항버스의 최신 운행정보, 정류장 위치, 시간표를 확인하세요.`} />
+		<meta property="og:type" content="website" />
+		<meta name="twitter:card" content="summary_large_image" />
+		<meta name="twitter:title" content={`${route.name} | 최신 시간표 & 정류장 안내`} />
+		<meta name="twitter:description" content={`인천공항↔${route.name.split('↔')[1]?.split('(')[0] || '서울'} 공항버스의 최신 운행정보, 정류장 위치, 시간표를 확인하세요.`} />
+		<title>{route.name} | 최신 시간표 & 정류장 안내</title>
+	</head>
+	<body>
+		<!-- Header Section -->
+		<header class="bg-white shadow-sm">
+			<div class="max-w-7xl mx-auto px-4 py-4">
+				<div class="flex items-center justify-between">
+					<div class="flex items-center">
+						<a href="/">
+							<img 
+								src="/logo/seoul-airport-bus-logo.webp" 
+								alt="Seoul Airport Bus" 
+								class="h-10 md:h-14 w-auto"
+							/>
+						</a>
+					</div>
+					<Navigation client:load />
+				</div>
+			</div>
+		</header>
+
+		<!-- Hero Section -->
+		<section class="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-indigo-800">
+			<!-- Background Image -->
+			<div class="absolute inset-0">
+				<img 
+					src="/hero/incheon-airport-view.webp" 
+					alt="인천공항 전경" 
+					class="w-full h-full object-cover opacity-30"
+				/>
+			</div>
+			
+			<!-- Dark overlay -->
+			<div class="absolute inset-0 bg-black/40"></div>
+			
+			<!-- Content -->
+			<div class="relative max-w-7xl mx-auto px-4 py-16 md:py-24">
+				<div class="text-center text-white">
+					<!-- Breadcrumb -->
+					<nav class="mb-6">
+						<a href="/" class="inline-flex items-center text-white/80 hover:text-white font-medium transition-colors">
+							<svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+							</svg>
+							홈으로 돌아가기
+						</a>
+					</nav>
+					
+					<h1 class="text-3xl md:text-5xl font-bold mb-4 drop-shadow-lg">
+						{route.name}
+					</h1>
+					<p class="text-white/90 text-lg md:text-xl drop-shadow">
+						정류장별 시간표와 위치정보를 확인하세요
+					</p>
+				</div>
+			</div>
+		</section>
+
+		<main class="max-w-7xl mx-auto px-4 pb-12">
+			<!-- Quick Info Section -->
+			<section class="py-12">
+				<div class="text-center mb-12">
+					<h2 class="text-2xl md:text-3xl font-bold text-[#0F172A] mb-3">운행 정보</h2>
+					<p class="text-[#334155] text-base md:text-lg">
+						이 노선의 핵심 정보를 한눈에 확인하세요
+					</p>
+				</div>
+				
+				<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-5">
+					<!-- 운행 구간 -->
+					<article class="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all duration-200
+									hover:shadow-md hover:-translate-y-0.5 hover:bg-blue-50 hover:border-blue-200 focus-within:ring-2 focus-within:ring-[#2563EB]"
+							 aria-label="운행 구간">
+						<div class="flex items-center gap-3">
+							<div class="shrink-0 rounded-xl bg-[#1D4ED8] p-3 shadow-sm group-hover:bg-[#1E40AF] transition-colors duration-200">
+								<svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.6">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+								</svg>
+							</div>
+							<h3 class="text-base font-semibold text-slate-800 group-hover:text-slate-900 transition-colors duration-200">운행 구간</h3>
+						</div>
+						<p class="mt-3 text-base leading-6 text-slate-700 tabular-nums group-hover:text-slate-800 transition-colors duration-200">인천공항 제1터미널 ↔ {route.name.includes('명동') ? '명동' : route.name.includes('홍대') ? '홍대' : route.name.includes('강남') ? '강남역' : '서울역'}</p>
+					</article>
+
+					<!-- 소요 시간 -->
+					<article class="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all duration-200
+									hover:shadow-md hover:-translate-y-0.5 hover:bg-blue-50 hover:border-blue-200 focus-within:ring-2 focus-within:ring-[#2563EB]"
+							 aria-label="소요 시간">
+						<div class="flex items-center gap-3">
+							<div class="shrink-0 rounded-xl bg-[#1D4ED8] p-3 shadow-sm group-hover:bg-[#1E40AF] transition-colors duration-200">
+								<svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.6">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+							</div>
+							<h3 class="text-base font-semibold text-slate-800 group-hover:text-slate-900 transition-colors duration-200">소요 시간</h3>
+						</div>
+						<p class="mt-3 text-base leading-6 text-slate-700 tabular-nums group-hover:text-slate-800 transition-colors duration-200">약 {route.name.includes('강남') ? '70' : route.name.includes('명동') ? '65' : '60'}분</p>
+					</article>
+
+					<!-- 운행 간격 -->
+					<article class="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all duration-200
+									hover:shadow-md hover:-translate-y-0.5 hover:bg-blue-50 hover:border-blue-200 focus-within:ring-2 focus-within:ring-[#2563EB]"
+							 aria-label="운행 간격">
+						<div class="flex items-center gap-3">
+							<div class="shrink-0 rounded-xl bg-[#1D4ED8] p-3 shadow-sm group-hover:bg-[#1E40AF] transition-colors duration-200">
+								<svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.6">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4"></path>
+								</svg>
+							</div>
+							<h3 class="text-base font-semibold text-slate-800 group-hover:text-slate-900 transition-colors duration-200">운행 간격</h3>
+						</div>
+						<p class="mt-3 text-base leading-6 text-slate-700 tabular-nums group-hover:text-slate-800 transition-colors duration-200">20~30분</p>
+					</article>
+
+					<!-- 요금 정보 -->
+					<article class="group rounded-2xl border border-slate-200 bg-slate-50 p-5 shadow-sm transition-all duration-200
+									hover:shadow-md hover:-translate-y-0.5 hover:bg-amber-50 hover:border-amber-200 focus-within:ring-2 focus-within:ring-[#2563EB]"
+							 aria-label="요금 정보">
+						<div class="flex items-center gap-3">
+							<div class="shrink-0 rounded-xl bg-amber-600 p-3 shadow-sm group-hover:bg-amber-700 transition-colors duration-200">
+								<svg viewBox="0 0 24 24" class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="1.6">
+									<path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+								</svg>
+							</div>
+							<h3 class="text-base font-semibold text-slate-800 group-hover:text-slate-900 transition-colors duration-200">요금 정보</h3>
+						</div>
+						<p class="mt-3 text-base leading-6 text-slate-700 tabular-nums group-hover:text-slate-800 transition-colors duration-200">성인 17,000원 · 소아 11,000원</p>
+					</article>
+				</div>
+			</section>
+
+			<!-- Ad Slot - Between Quick Info and Map -->
+			<section class="py-8">
+				<AdsSlot />
+			</section>
+
+			<!-- Map Section -->
+			<section class="py-12">
+				<div class="text-center mb-8">
+					<h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">정류장 위치</h2>
+					<p class="text-gray-600">주요 정류장의 위치를 지도에서 확인하세요</p>
+				</div>
+				
+				<!-- Map Placeholder -->
+				<div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+					<div class="h-96 bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+						<div class="text-center">
+							<div class="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+								<svg class="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path>
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path>
+								</svg>
+							</div>
+							<h3 class="text-xl font-semibold text-gray-800 mb-2">네이버맵 연동 예정</h3>
+							<p class="text-gray-600">정류장 위치와 실시간 정보가 표시됩니다</p>
+						</div>
+					</div>
+					
+					<!-- 정류장 목록 (SEO용) -->
+					{timetable.stops.length > 0 && (
+						<div class="p-6 border-t bg-gray-50">
+							<h4 class="font-semibold text-gray-900 mb-3">주요 정류장</h4>
+							<div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+								{timetable.stops.map((stop) => (
+									<div class="text-sm text-gray-700 bg-white rounded-lg px-3 py-2 border">
+										📍 {stop}
+									</div>
+								))}
+							</div>
+						</div>
+					)}
+				</div>
+			</section>
+
+			<!-- Timetable Section -->
+			<section class="py-12">
+				<div class="text-center mb-8">
+					<h2 class="text-2xl md:text-3xl font-bold text-gray-900 mb-3">운행 시간표</h2>
+					<p class="text-gray-600">정류장별 출발시간을 확인하고 여행을 계획하세요</p>
+				</div>
+				
+				{error ? (
+					<div class="bg-red-50 border border-red-200 rounded-xl p-8 text-center">
+						<div class="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+							<svg class="w-8 h-8 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+							</svg>
+						</div>
+						<div class="text-red-700 font-semibold mb-2 text-xl">시간표 로드 오류</div>
+						<p class="text-red-600 mb-4">{error}</p>
+						<p class="text-sm text-gray-600">
+							잠시 후 다시 시도해주시거나 관리자에게 문의하세요.
+						</p>
+					</div>
+				) : timetable.stops.length === 0 ? (
+					<div class="bg-yellow-50 border border-yellow-200 rounded-xl p-8 text-center">
+						<div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+							<svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+							</svg>
+						</div>
+						<div class="text-yellow-700 font-semibold mb-2 text-xl">시간표 준비 중</div>
+						<p class="text-yellow-600">이 노선의 시간표가 아직 준비되지 않았습니다.</p>
+					</div>
+				) : (
+					<div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+						<TimetableTable 
+							routeName={route.name}
+							stops={timetable.stops}
+							departures={timetable.departures}
+						/>
+					</div>
+				)}
+			</section>
+
+			<!-- Ad Slot -->
+			<section class="py-8">
+				<AdsSlot />
+			</section>
+
+			<!-- Additional Info -->
+			<section class="py-12">
+				<div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-8">
+					<h3 class="text-2xl font-bold text-gray-900 mb-6 text-center">이용 안내</h3>
+					<div class="grid md:grid-cols-2 gap-6">
+						<div class="bg-white rounded-lg p-6 shadow-sm">
+							<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+								<svg class="w-6 h-6 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+								</svg>
+								운행 정보
+							</h4>
+							<ul class="text-gray-700 space-y-3 text-base">
+								<li>• 시간표는 평일 기준이며, 교통상황에 따라 지연될 수 있습니다</li>
+								<li>• 공휴일 및 주말에는 운행시간이 다를 수 있습니다</li>
+								<li>• 날씨나 교통 상황에 따라 운행이 중단될 수 있습니다</li>
+							</ul>
+						</div>
+						<div class="bg-white rounded-lg p-6 shadow-sm">
+							<h4 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+								<svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path>
+								</svg>
+								문의 안내
+							</h4>
+							<ul class="text-gray-700 space-y-3 text-base">
+								<li>• 정확한 요금과 운행시간은 해당 버스회사에 문의하세요</li>
+								<li>• 실시간 운행정보는 버스 앱을 이용해주세요</li>
+								<li>• 예약 및 취소는 각 운행사 규정을 따릅니다</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+			</section>
+		</main>
+
+		<!-- Footer -->
+		<footer class="bg-gray-900 text-white py-12">
+			<div class="max-w-7xl mx-auto px-4">
+				<div class="text-center">
+					<img 
+						src="/logo/seoul-airport-bus-logo.webp" 
+						alt="Seoul Airport Bus" 
+						class="h-12 w-auto mx-auto mb-6 opacity-90"
+					/>
+					<div class="text-gray-400 text-sm mb-4">
+						<p>{route.name} 공항버스 시간표 및 정류장 안내</p>
+						<p>인천공항 ↔ 서울 주요지역 버스 노선정보</p>
+					</div>
+					<div class="border-t border-gray-700 pt-6">
+						<p class="text-gray-500 text-sm">&copy; 2025 SEOUL AIRPORT BUS. 정확한 시간은 운행사에 문의하세요.</p>
+					</div>
+				</div>
+			</div>
+		</footer>
+	</body>
+</html>
